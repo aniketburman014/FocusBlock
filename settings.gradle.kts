@@ -3,6 +3,10 @@ pluginManagement {
     // https://r8.googlesource.com/r8/+/refs/heads/main/README.md
     buildscript {
         repositories {
+            maven {
+                url = uri("https://storage.googleapis.com/r8-releases/raw")
+                content { includeModule("com.android.tools", "r8") }
+            }
             google()
             mavenCentral()
         }

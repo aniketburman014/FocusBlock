@@ -2,6 +2,10 @@
 // Keep each family aligned and retain the OSV gate to validate the resolved graph.
 buildscript {
     repositories {
+        maven {
+            url = uri("https://storage.googleapis.com/r8-releases/raw")
+            content { includeModule("com.android.tools", "r8") }
+        }
         google()
         mavenCentral()
     }

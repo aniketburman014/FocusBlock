@@ -25,6 +25,8 @@ Upgrading Kotlin also changes the compiler-selected Kotlin standard library vers
 
 D8/R8 is loaded early from `pluginManagement.buildscript` in settings, following the publisher's override instructions, and declared on the root buildscript classpath so the dependency inventory also scans it. CI checks the actually loaded `Version.getVersionString()` before inventorying dependencies; an unexpected compiler implementation fails the run.
 
+R8 9.1.29 is a tagged upstream release, but the CI attempt confirmed it is absent from the configured Google Maven/Maven Central endpoints. Both buildscript scopes now include the publisher-documented archive Maven repository, `https://storage.googleapis.com/r8-releases/raw`, restricted to `com.android.tools:r8`. No application-runtime repository was added. The exact release's README documents this archive and its override configuration: https://r8.googlesource.com/r8/+/refs/tags/9.1.29 . The archive download itself cannot be tested from this session's network; resolution and version verification still require CI.
+
 ## Validation status
 
 The prepared versions were checked against publisher releases, advisories, and compatibility guidance. The Kotlin advisory lists versions below 2.4.20-Beta1 as affected; 2.4.21 is a stable release above that fixed version. The Gradle/AGP/Kotlin combination uses supported version ranges, with the documented D8/R8 override for Kotlin 2.4. JDK 17, Android platform 35, and Build Tools 35.0.0 are used.
