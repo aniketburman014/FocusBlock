@@ -28,7 +28,11 @@ The local build attempt is blocked: no usable Java runtime or SDK was found, and
 
 The workflow `.github/workflows/android-apk.yml` runs on pushes to `main` or `codex/focusblock-accessibility`, pull requests, and manual dispatch. It uses the hosted Ubuntu 24.04 JDK 17 and installs Android SDK 35 and Build Tools 34.0.0. No repository signing secrets are needed for this development build.
 
-It verifies the wrapper, runs six Python tests for the final-manifest checker, runs JVM tests and Android lint, and compiles both the application and Android device tests. The six Android detector tests are compiled only; they still require execution on a device. It then checks the APK's merged manifest for unexpected permissions/exported components and verifies its signature.
+It verifies the wrapper, runs twelve Python tests for the final-manifest checker and dependency scanner, runs JVM tests and Android lint, and compiles both the application and Android device tests. The six Android detector tests are compiled only; they still require execution on a device. It then checks the APK's merged manifest for unexpected permissions/exported components and verifies its signature.
+
+The dependency stage resolves the runtime, unit-test, device-test, and build-plugin classpaths, records Maven coordinates and artifact SHA-256 values, and queries OSV for the actual selected versions, including transitive dependencies. The separate **FocusBlock-dependency-audit** artifact contains `resolved.json` and `osv-audit.json` even when advisories block the build. Findings retain their scopes: an issue in a build/test tool is not automatically an issue reachable in the installed app. Any active advisory or incomplete API scan stops the APK delivery job for review. No advisory matches is not proof of safety, malware absence, or artifact provenance; OSV's coverage is incomplete and recorded hashes have not been independently authenticated.
+
+The inventory describes dependencies resolved by the new CI run. It does not retrospectively authenticate every dependency in an earlier APK. Keep the report with the APK and source commit produced by the same run.
 
 After a successful run, open your fork's **Actions → Build reviewed FocusBlock APK → successful run → Artifacts → FocusBlock-test-apk**. Unzip it to get the APK, APK SHA-256, source commit, manifest, and signing certificate details. Artifacts are retained for seven days. If Actions is disabled on your fork, enable it and push again or run the workflow from its branch once available.
 

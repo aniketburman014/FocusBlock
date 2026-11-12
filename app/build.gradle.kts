@@ -1,3 +1,6 @@
+import groovy.json.JsonOutput
+import java.security.MessageDigest
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -85,4 +88,41 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+}
+
+// Resolve actual transitive versions and record the bytes used by this build.
+// Test/build dependencies are labelled separately from code shipped in the APK.
+tasks.register("writeDependencyInventory") {
+    doLast {
+        val scopes = linkedMapOf(
+            "runtime" to configurations.getByName("debugRuntimeClasspath"),
+            "unit-test" to configurations.getByName("debugUnitTestRuntimeClasspath"),
+            "device-test" to configurations.getByName("debugAndroidTestRuntimeClasspath"),
+            "build-tools" to rootProject.buildscript.configurations.getByName("classpath")
+        )
+        val entries = scopes.flatMap { (scope, configuration) ->
+            configuration.resolvedConfiguration.resolvedArtifacts.map { artifact ->
+                val module = artifact.moduleVersion.id
+                val digest = MessageDigest.getInstance("SHA-256")
+                artifact.file.inputStream().use { input ->
+                    val buffer = ByteArray(65536)
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        digest.update(buffer, 0, count)
+                    }
+                }
+                mapOf(
+                    "scope" to scope, "name" to "${module.group}:${module.name}",
+                    "version" to module.version, "file" to artifact.file.name,
+                    "sha256" to digest.digest().joinToString("") { "%02x".format(it) }
+                )
+            }
+        }.sortedBy { "${it["scope"]}:${it["name"]}:${it["version"]}:${it["file"]}" }
+        check(entries.any { it["scope"] == "runtime" }) { "Empty runtime dependency inventory" }
+        val report = layout.buildDirectory.file("reports/dependencies/resolved.json").get().asFile
+        report.parentFile.mkdirs()
+        report.writeText(JsonOutput.prettyPrint(JsonOutput.toJson(mapOf("artifacts" to entries))))
+        logger.lifecycle("Recorded ${entries.size} resolved dependency artifacts in $report")
+    }
 }

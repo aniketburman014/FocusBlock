@@ -44,6 +44,11 @@ jobs:
           "$sdkmanager" --licenses < <(yes) > /dev/null
           "$sdkmanager" 'platforms;android-35' 'build-tools;34.0.0' 'platform-tools'
 
+      - name: Inventory and audit resolved dependencies
+        run: |
+          ./gradlew --no-daemon --stacktrace :app:writeDependencyInventory
+          python3 scripts/audit_dependencies.py app/build/reports/dependencies/resolved.json app/build/reports/dependencies/osv-audit.json
+
       - name: Run JVM tests, lint, and compile app and device tests
         run: ./gradlew --no-daemon --stacktrace testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
 
@@ -81,6 +86,15 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 7
+
+      - name: Upload dependency inventory and audit
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2, Node.js 24
+        with:
+          name: FocusBlock-dependency-audit
+          path: app/build/reports/dependencies/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Show lint errors when a build fails
         if: failure()
