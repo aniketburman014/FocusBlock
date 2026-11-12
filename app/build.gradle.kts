@@ -1,6 +1,7 @@
 import groovy.json.JsonOutput
 import java.security.MessageDigest
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
@@ -12,6 +13,7 @@ val personalKeystorePath = providers.environmentVariable("FOCUSBLOCK_KEYSTORE_PA
 android {
     namespace = "com.focusblock.app"
     compileSdk = 35
+    buildToolsVersion = "35.0.0"
 
     defaultConfig {
         applicationId = "com.focusblock.app"
@@ -59,10 +61,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         viewBinding = true
     }
@@ -78,6 +76,12 @@ android {
                     "FocusBlock-debug.apk"
                 }
             }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 

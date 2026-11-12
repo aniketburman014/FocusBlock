@@ -42,7 +42,7 @@ jobs:
           sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           test -x "$sdkmanager"
           "$sdkmanager" --licenses < <(yes) > /dev/null
-          "$sdkmanager" 'platforms;android-35' 'build-tools;34.0.0' 'platform-tools'
+          "$sdkmanager" 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
 
       - name: Inventory and audit resolved dependencies
         run: |
@@ -59,7 +59,7 @@ jobs:
           apk=dist/FocusBlock-debug.apk
           "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print "$apk" > dist/AndroidManifest.xml
           python3 scripts/check_apk_manifest.py dist/AndroidManifest.xml
-          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$apk" > dist/signing-certificate.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk" > dist/signing-certificate.txt
           sha256sum "$apk" > dist/SHA256SUMS
           git rev-parse HEAD > dist/SOURCE-COMMIT.txt
           cat > dist/BUILD-NOTES.txt <<'NOTES'

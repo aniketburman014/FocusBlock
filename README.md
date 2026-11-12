@@ -84,7 +84,7 @@ graph TD
 ### Requirements:
 - Android SDK (API 35, min API 26 / Android 8.0+)
 - JDK 17+
-- Gradle 8.7 (wrapper), Android Gradle Plugin 8.6.1
+- Gradle 8.13 (wrapper distribution), Android Gradle Plugin 8.13.2, Kotlin 2.4.21
 
 ### Build Debug APK:
 ```bash

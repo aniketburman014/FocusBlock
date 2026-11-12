@@ -7,7 +7,7 @@ This checkout is separate from `/Users/aniket.burman/FocusBlock`. Accessibility 
 ## Prepared changes
 
 - Fixed the Unix wrapper's missing APP_HOME and made the script executable.
-- Updated Android Gradle Plugin to 8.6.1, which supports compile SDK 35 with Gradle 8.7 and JDK 17. Removed the old unsupported-SDK warning suppression.
+- Initially aligned AGP with SDK 35 and removed the unsupported-SDK warning suppression. After CI found build-tool advisories, prepared AGP 8.13.2, Gradle 8.13, Kotlin 2.4.21, D8/R8 9.1.29, and targeted buildscript dependency patches. See BUILD-DEPENDENCY-UPDATES.md for the versions, scope, and outstanding CI validation.
 - Removed debug signing from release builds. Optional personal signing uses environment variables; otherwise release output is unsigned.
 - Ignored common private signing-file names.
 - Removed AndroidX's exported ProfileInstallReceiver during manifest merging. This external profiling/benchmark entry point is not needed for FocusBlock; AndroidX's in-process initializer remains. The APK checker still permits only the launcher activity and protected Accessibility service to be exported.
@@ -20,13 +20,13 @@ This checkout is separate from `/Users/aniket.burman/FocusBlock`. Accessibility 
 
 ## Build prerequisites
 
-Install JDK 17 and Android SDK platform 35, platform-tools, and compatible build tools (AGP 8.6 defaults to Build Tools 34.0.0). Configure JAVA_HOME and ANDROID_HOME. The first build also needs access to Google's Maven repository, Maven Central, and the Gradle distribution server.
+Install JDK 17 and Android SDK platform 35, platform-tools, and Build Tools 35.0.0. Configure JAVA_HOME and ANDROID_HOME. The first build also needs access to Google's Maven repository, Maven Central, and the Gradle distribution server.
 
 The local build attempt is blocked: no usable Java runtime or SDK was found, and DNS requests for required download hosts failed. No APK or signing key has been produced. The wrapper JAR now matches Gradle's published 8.7 SHA-256 (`cb0da6751c2b753a16ac168bb354870ebb1e162e9083f116729cec9c781156b8`), and the distribution checksum is pinned in wrapper properties.
 
 ## Build with GitHub Actions
 
-The workflow `.github/workflows/android-apk.yml` runs on pushes to `main` or `codex/focusblock-accessibility`, pull requests, and manual dispatch. It uses the hosted Ubuntu 24.04 JDK 17 and installs Android SDK 35 and Build Tools 34.0.0. No repository signing secrets are needed for this development build.
+The workflow `.github/workflows/android-apk.yml` runs on pushes to `main` or `codex/focusblock-accessibility`, pull requests, and manual dispatch. It uses the hosted Ubuntu 24.04 JDK 17 and installs Android SDK 35 and Build Tools 35.0.0. No repository signing secrets are needed for this development build.
 
 It verifies the wrapper, runs twelve Python tests for the final-manifest checker and dependency scanner, runs JVM tests and Android lint, and compiles both the application and Android device tests. The six Android detector tests are compiled only; they still require execution on a device. It then checks the APK's merged manifest for unexpected permissions/exported components and verifies its signature.
 
