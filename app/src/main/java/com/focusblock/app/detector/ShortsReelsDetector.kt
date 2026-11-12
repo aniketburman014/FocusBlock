@@ -1,6 +1,5 @@
 package com.focusblock.app.detector
 
-import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import java.util.ArrayDeque
 
@@ -14,11 +13,11 @@ data class DetectionResult(
 )
 
 /**
- * Universal, high-precision detector for Short-form video feeds across:
- * - Instagram (Reels tab & Fullscreen Clips Viewer only; Stories, Feed, and DMs guaranteed safe)
- * - Snapchat (Spotlight tab & Fullscreen Spotlight viewer only; Camera, Chats, Stories safe)
- * - YouTube & YouTube ReVanced (Shorts tab & Fullscreen Shorts player only; Normal videos & Home safe)
- * - Facebook & FB Lite (Reels tab & Shorts viewer only; Normal posts & feed safe)
+ * Visible-node detector for short-form video screens. IDs vary by app version.
+ * - Instagram (Reels tab & Fullscreen Clips Viewer only; intended to preserve Stories, Feed, and DMs)
+ * - Snapchat (Spotlight tab & Fullscreen Spotlight viewer only; intended to preserve Camera, Chats, Stories)
+ * - YouTube & YouTube ReVanced (Shorts tab & Fullscreen Shorts player only; intended to preserve Normal videos and Home)
+ * - Facebook & FB Lite (Reels tab & Shorts viewer only; intended to preserve normal posts and feed)
  */
 class ShortsReelsDetector {
 
@@ -43,17 +42,6 @@ class ShortsReelsDetector {
         private const val MAX_SCAN_DEPTH = 35
 
         // ==================== INSTAGRAM SIGNATURES ====================
-        // View IDs that strictly appear ONLY in the fullscreen Reels/Clips viewer
-        private val IG_CLIPS_VIEWER_IDS = listOf(
-            "com.instagram.android:id/clips_viewer_view_pager",
-            "com.instagram.android:id/clips_video_container",
-            "com.instagram.android:id/clips_viewer_root",
-            "com.instagram.android:id/clips_viewer_media_info_layout",
-            "com.instagram.android:id/clips_ufi_container",
-            "com.instagram.android:id/clips_viewer_fragment",
-            "com.instagram.android:id/clips_item_container",
-            "com.instagram.android:id/clips_swipe_refresh_layout"
-        )
 
         private val IG_CLIPS_ID_KEYWORDS = setOf(
             "clips_viewer_view_pager",
@@ -84,19 +72,6 @@ class ShortsReelsDetector {
         )
 
         // ==================== SNAPCHAT SIGNATURES ====================
-        private val SNAP_SPOTLIGHT_FULL_IDS = listOf(
-            "com.snapchat.android:id/spotlight_carousel",
-            "com.snapchat.android:id/spotlight_fullscreen",
-            "com.snapchat.android:id/spotlight_player",
-            "com.snapchat.android:id/spotlight_story_player",
-            "com.snapchat.android:id/spotlight_swipe_layer",
-            "com.snapchat.android:id/spotlight_container",
-            "com.snapchat.android:id/spotlight_video",
-            "com.snapchat.android:id/spotlight_overlay",
-            "com.snapchat.android:id/spotlight_fragment",
-            "com.snapchat.android:id/spotlight_unified_carousel",
-            "com.snapchat.android:id/spotlight_tab"
-        )
 
         private val SNAP_SPOTLIGHT_ID_KEYWORDS = setOf(
             "spotlight_carousel",
@@ -109,7 +84,6 @@ class ShortsReelsDetector {
             "spotlight_overlay",
             "spotlight_fragment",
             "spotlight_unified_carousel",
-            "spotlight_tab"
         )
 
         private val SNAP_WHITELIST_KEYWORDS = setOf(
@@ -124,18 +98,6 @@ class ShortsReelsDetector {
         )
 
         // ==================== YOUTUBE SIGNATURES ====================
-        private val YT_SHORTS_FULL_IDS = listOf(
-            "com.google.android.youtube:id/reel_recycler",
-            "com.google.android.youtube:id/reel_player_page_view",
-            "com.google.android.youtube:id/reel_watch_fragment_container",
-            "com.google.android.youtube:id/reel_watch_fragment_root",
-            "com.google.android.youtube:id/reel_watch_pager",
-            "com.google.android.youtube:id/reel_video_player",
-            "com.google.android.youtube:id/reel_content_root",
-            "com.google.android.youtube:id/reel_player_view_stub",
-            "com.google.android.youtube:id/shorts_container",
-            "com.google.android.youtube:id/shorts_player"
-        )
 
         private val YT_SHORTS_ID_KEYWORDS = setOf(
             "reel_recycler",
@@ -167,7 +129,6 @@ class ShortsReelsDetector {
             "fb_shorts_container",
             "fb_shorts_viewer_fragment",
             "fb_shorts_viewer_page",
-            "reels_tab",
             "fb_shorts_video_container"
         )
     }
@@ -177,74 +138,33 @@ class ShortsReelsDetector {
      */
     fun detectDistraction(
         packageName: String?,
-        currentActivity: String?,
-        rootNode: AccessibilityNodeInfo?,
-        event: AccessibilityEvent?
+        rootNode: AccessibilityNodeInfo?
     ): DetectionResult {
-        if (packageName == null || rootNode == null) return DetectionResult(false)
+        if (packageName !in SUPPORTED_PACKAGES || rootNode == null ||
+            rootNode.packageName?.toString() != packageName || !rootNode.isVisibleToUser) {
+            return DetectionResult(false)
+        }
 
         return when (packageName) {
-            PACKAGE_INSTAGRAM -> evaluateInstagram(currentActivity, rootNode, event)
-            PACKAGE_SNAPCHAT -> evaluateSnapchat(currentActivity, rootNode, event)
-            PACKAGE_YOUTUBE, PACKAGE_YOUTUBE_REVANCED -> evaluateYouTube(currentActivity, rootNode, event)
-            PACKAGE_FACEBOOK, PACKAGE_FACEBOOK_LITE -> evaluateFacebook(currentActivity, rootNode, event)
+            PACKAGE_INSTAGRAM -> evaluateInstagram(rootNode)
+            PACKAGE_SNAPCHAT -> evaluateSnapchat(rootNode)
+            PACKAGE_YOUTUBE, PACKAGE_YOUTUBE_REVANCED -> evaluateYouTube(rootNode)
+            PACKAGE_FACEBOOK, PACKAGE_FACEBOOK_LITE -> evaluateFacebook(rootNode)
             else -> DetectionResult(false)
         }
     }
 
     // ==================== INSTAGRAM EVALUATION ====================
     private fun evaluateInstagram(
-        currentActivity: String?,
-        rootNode: AccessibilityNodeInfo,
-        event: AccessibilityEvent?
+        rootNode: AccessibilityNodeInfo
     ): DetectionResult {
-        // Step 1: NEVER block Stories (ReelViewerActivity in Instagram is Stories!)
-        if (currentActivity != null && currentActivity.contains("ReelViewerActivity", ignoreCase = true)) {
-            return DetectionResult(false)
-        }
-
-        // Fullscreen clips viewer activity
-        if (currentActivity != null && currentActivity.contains("ClipsViewerActivity", ignoreCase = true)) {
-            return DetectionResult(isDistraction = true, isTabSelected = false)
-        }
-
-        // Step 2: Check event for direct Reels tab selection
-        if (event != null) {
-            val eventDesc = event.contentDescription?.toString() ?: ""
-            val eventText = event.text.joinToString(" ")
-            if (event.eventType == AccessibilityEvent.TYPE_VIEW_SELECTED ||
-                event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED
-            ) {
-                if (eventDesc.equals("Reels", ignoreCase = true) ||
-                    eventDesc.startsWith("Reels,", ignoreCase = true) ||
-                    eventDesc.contains("Reels tab", ignoreCase = true) ||
-                    eventText.equals("Reels", ignoreCase = true)
-                ) {
-                    return DetectionResult(isDistraction = true, isTabSelected = true, tabType = "reels")
-                }
-            }
-        }
-
-        // Step 3: Fast Native View ID Lookups for Clips Viewer
-        for (fullId in IG_CLIPS_VIEWER_IDS) {
-            try {
-                val nodes = rootNode.findAccessibilityNodeInfosByViewId(fullId)
-                if (!nodes.isNullOrEmpty()) {
-                    return DetectionResult(isDistraction = true, isTabSelected = false)
-                }
-            } catch (_: Exception) {
-            }
-        }
-
-        // Step 4: BFS Hierarchy Inspection
         var isReelsTabSelected = false
         var isClipsViewerFound = false
         var isWhitelistedState = false
 
         traverseHierarchy(rootNode) { node ->
             val viewId = node.viewIdResourceName
-            val desc = node.contentDescription?.toString() ?: ""
-            val text = node.text?.toString() ?: ""
+            val isNavigationTab = viewId == "com.instagram.android:id/clips_tab"
 
             if (viewId != null) {
                 val cleanId = viewId.substringAfter(":id/").lowercase()
@@ -260,20 +180,7 @@ class ShortsReelsDetector {
                 }
             }
 
-            // Bottom Navigation: ONLY trigger if Reels tab is actively SELECTED
-            if (desc.isNotEmpty()) {
-                val cleanDesc = desc.trim()
-                if ((cleanDesc.equals("Reels", ignoreCase = true) ||
-                     cleanDesc.startsWith("Reels,", ignoreCase = true) ||
-                     cleanDesc.contains("Reels, tab", ignoreCase = true) ||
-                     cleanDesc.contains("Reels tab", ignoreCase = true)) &&
-                    node.isSelected
-                ) {
-                    isReelsTabSelected = true
-                }
-            }
-
-            if (text.isNotEmpty() && text.equals("Reels", ignoreCase = true) && node.isSelected) {
+            if (isNavigationTab && node.isSelected) {
                 isReelsTabSelected = true
             }
 
@@ -297,47 +204,15 @@ class ShortsReelsDetector {
 
     // ==================== SNAPCHAT EVALUATION ====================
     private fun evaluateSnapchat(
-        currentActivity: String?,
-        rootNode: AccessibilityNodeInfo,
-        event: AccessibilityEvent?
+        rootNode: AccessibilityNodeInfo
     ): DetectionResult {
-        if (currentActivity != null && currentActivity.contains("Spotlight", ignoreCase = true)) {
-            return DetectionResult(isDistraction = true, isTabSelected = false)
-        }
-
-        if (event != null) {
-            val eventDesc = event.contentDescription?.toString() ?: ""
-            val eventText = event.text.joinToString(" ")
-            if (event.eventType == AccessibilityEvent.TYPE_VIEW_SELECTED ||
-                event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED
-            ) {
-                if (eventDesc.equals("Spotlight", ignoreCase = true) ||
-                    eventDesc.startsWith("Spotlight,", ignoreCase = true) ||
-                    eventText.equals("Spotlight", ignoreCase = true)
-                ) {
-                    return DetectionResult(isDistraction = true, isTabSelected = true, tabType = "spotlight")
-                }
-            }
-        }
-
-        for (fullId in SNAP_SPOTLIGHT_FULL_IDS) {
-            try {
-                val nodes = rootNode.findAccessibilityNodeInfosByViewId(fullId)
-                if (!nodes.isNullOrEmpty()) {
-                    return DetectionResult(isDistraction = true, isTabSelected = false)
-                }
-            } catch (_: Exception) {
-            }
-        }
-
         var isSpotlightTabSelected = false
         var isSpotlightViewerFound = false
         var isWhitelistedState = false
 
         traverseHierarchy(rootNode) { node ->
             val viewId = node.viewIdResourceName
-            val desc = node.contentDescription?.toString() ?: ""
-            val text = node.text?.toString() ?: ""
+            val isNavigationTab = viewId == "com.snapchat.android:id/spotlight_tab"
 
             if (viewId != null) {
                 val cleanId = viewId.substringAfter(":id/").lowercase()
@@ -352,19 +227,7 @@ class ShortsReelsDetector {
                 }
             }
 
-            if (desc.isNotEmpty()) {
-                val cleanDesc = desc.trim()
-                if ((cleanDesc.equals("Spotlight", ignoreCase = true) ||
-                     cleanDesc.startsWith("Spotlight,", ignoreCase = true) ||
-                     cleanDesc.contains("Spotlight, tab", ignoreCase = true) ||
-                     cleanDesc.contains("Spotlight tab", ignoreCase = true)) &&
-                    node.isSelected
-                ) {
-                    isSpotlightTabSelected = true
-                }
-            }
-
-            if (text.isNotEmpty() && text.equals("Spotlight", ignoreCase = true) && node.isSelected) {
+            if (isNavigationTab && node.isSelected) {
                 isSpotlightTabSelected = true
             }
 
@@ -388,49 +251,20 @@ class ShortsReelsDetector {
 
     // ==================== YOUTUBE EVALUATION ====================
     private fun evaluateYouTube(
-        currentActivity: String?,
-        rootNode: AccessibilityNodeInfo,
-        event: AccessibilityEvent?
+        rootNode: AccessibilityNodeInfo
     ): DetectionResult {
-        if (currentActivity != null &&
-            (currentActivity.contains("ReelWatchActivity", ignoreCase = true) ||
-             currentActivity.contains("ReelPlayerActivity", ignoreCase = true))
-        ) {
-            return DetectionResult(isDistraction = true, isTabSelected = false)
-        }
-
-        if (event != null) {
-            val eventText = event.text.joinToString(" ")
-            val eventDesc = event.contentDescription?.toString() ?: ""
-            if (event.eventType == AccessibilityEvent.TYPE_VIEW_SELECTED ||
-                event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED
-            ) {
-                if (eventDesc.equals("Shorts", ignoreCase = true) ||
-                    eventText.equals("Shorts", ignoreCase = true)
-                ) {
-                    return DetectionResult(isDistraction = true, isTabSelected = true, tabType = "shorts")
-                }
-            }
-        }
-
-        for (fullId in YT_SHORTS_FULL_IDS) {
-            try {
-                val nodes = rootNode.findAccessibilityNodeInfosByViewId(fullId)
-                if (!nodes.isNullOrEmpty()) {
-                    return DetectionResult(isDistraction = true, isTabSelected = false)
-                }
-            } catch (_: Exception) {
-            }
-        }
-
         var isShortsTabSelected = false
         var isShortsFound = false
         var isWhitelistedState = false
 
         traverseHierarchy(rootNode) { node ->
             val viewId = node.viewIdResourceName
-            val desc = node.contentDescription?.toString() ?: ""
-            val text = node.text?.toString() ?: ""
+            // YouTube reuses this ID for every bottom tab. Inspect a label only on
+            // that known navigation control, never arbitrary content or messages.
+            val isNavigationTab = viewId == "${node.packageName}:id/pivot_bar_item" &&
+                (node.contentDescription?.toString()?.substringBefore(',')?.trim()
+                    .equals("Shorts", ignoreCase = true) ||
+                    node.text?.toString().equals("Shorts", ignoreCase = true))
 
             if (viewId != null) {
                 val cleanId = viewId.substringAfter(":id/").lowercase()
@@ -445,18 +279,7 @@ class ShortsReelsDetector {
                 }
             }
 
-            if (desc.isNotEmpty()) {
-                val cleanDesc = desc.trim()
-                if ((cleanDesc.equals("Shorts", ignoreCase = true) ||
-                     cleanDesc.startsWith("Shorts,", ignoreCase = true) ||
-                     (cleanDesc.endsWith(", tab", ignoreCase = true) && cleanDesc.contains("Shorts", ignoreCase = true))) &&
-                    node.isSelected
-                ) {
-                    isShortsTabSelected = true
-                }
-            }
-
-            if (text.isNotEmpty() && text.equals("Shorts", ignoreCase = true) && node.isSelected) {
+            if (isNavigationTab && node.isSelected) {
                 isShortsTabSelected = true
             }
 
@@ -480,23 +303,14 @@ class ShortsReelsDetector {
 
     // ==================== FACEBOOK EVALUATION ====================
     private fun evaluateFacebook(
-        currentActivity: String?,
-        rootNode: AccessibilityNodeInfo,
-        event: AccessibilityEvent?
+        rootNode: AccessibilityNodeInfo
     ): DetectionResult {
-        if (currentActivity != null &&
-            (currentActivity.contains("Reel", ignoreCase = true) ||
-             currentActivity.contains("FbShorts", ignoreCase = true))
-        ) {
-            return DetectionResult(isDistraction = true, isTabSelected = false)
-        }
-
         var isFbShortsDetected = false
         var isReelsTabSelected = false
 
         traverseHierarchy(rootNode) { node ->
             val viewId = node.viewIdResourceName
-            val desc = node.contentDescription?.toString() ?: ""
+            val isNavigationTab = viewId == "${node.packageName}:id/reels_tab"
 
             if (viewId != null) {
                 val cleanId = viewId.substringAfter(":id/").lowercase()
@@ -505,12 +319,8 @@ class ShortsReelsDetector {
                 }
             }
 
-            if (desc.isNotEmpty()) {
-                if ((desc.equals("Reels", ignoreCase = true) || desc.contains("Reels, tab", ignoreCase = true)) &&
-                    node.isSelected
-                ) {
-                    isReelsTabSelected = true
-                }
+            if (isNavigationTab && node.isSelected) {
+                isReelsTabSelected = true
             }
 
             true
@@ -528,7 +338,8 @@ class ShortsReelsDetector {
     }
 
     /**
-     * High-speed BFS tree traversal with cycle detection, depth limits, and node count caps.
+     * BFS traversal bounded by depth, processed nodes, and queued nodes. Hidden or foreign
+     * subtrees cannot provide detection evidence.
      */
     private inline fun traverseHierarchy(
         root: AccessibilityNodeInfo,
@@ -541,6 +352,7 @@ class ShortsReelsDetector {
         while (queue.isNotEmpty() && scannedCount < MAX_NODES_TO_SCAN) {
             val (current, depth) = queue.poll() ?: break
             scannedCount++
+            if (!current.isVisibleToUser || current.packageName?.toString() != root.packageName?.toString()) continue
 
             val shouldContinue = try {
                 onNode(current)
@@ -559,7 +371,8 @@ class ShortsReelsDetector {
                     0
                 }
 
-                for (i in 0 until childCount) {
+                val remaining = MAX_NODES_TO_SCAN - scannedCount - queue.size
+                for (i in 0 until minOf(childCount, remaining.coerceAtLeast(0))) {
                     val child = try {
                         current.getChild(i)
                     } catch (e: Exception) {

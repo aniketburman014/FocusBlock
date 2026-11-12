@@ -3,6 +3,8 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val personalKeystorePath = providers.environmentVariable("FOCUSBLOCK_KEYSTORE_PATH").orNull
+
 android {
     namespace = "com.focusblock.app"
     compileSdk = 35
@@ -20,10 +22,23 @@ android {
         }
     }
 
+    signingConfigs {
+        if (personalKeystorePath != null) {
+            create("personalRelease") {
+                storeFile = file(personalKeystorePath)
+                storePassword = providers.environmentVariable("FOCUSBLOCK_STORE_PASSWORD").orNull
+                keyAlias = providers.environmentVariable("FOCUSBLOCK_KEY_ALIAS").orNull
+                keyPassword = providers.environmentVariable("FOCUSBLOCK_KEY_PASSWORD").orNull
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            // Without personal signing credentials, produce an unsigned release.
+            // Never silently sign a release with the development key.
+            signingConfig = signingConfigs.findByName("personalRelease")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -63,6 +78,9 @@ android {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")

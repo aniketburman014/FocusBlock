@@ -106,12 +106,11 @@ class MainActivity : AppCompatActivity() {
     private fun isAccessibilityServiceEnabled(): Boolean {
         val am = getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager ?: return false
         val enabledServices = am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_GENERIC or AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
-        val expectedServiceName = "${packageName}/${FocusBlockAccessibilityService::class.java.name}"
-        
         return enabledServices.any { serviceInfo ->
-            val id = serviceInfo.id
-            id.equals(expectedServiceName, ignoreCase = true) || id.contains("FocusBlockAccessibilityService", ignoreCase = true)
-        } || FocusBlockAccessibilityService.isServiceRunning
+            val service = serviceInfo.resolveInfo.serviceInfo
+            service.packageName == packageName &&
+                service.name == FocusBlockAccessibilityService::class.java.name
+        }
     }
 
     private fun openAccessibilitySettings() {

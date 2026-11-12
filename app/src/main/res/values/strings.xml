@@ -16,14 +16,14 @@
     
     <string name="permission_card_title">Accessibility Permission</string>
     <string name="permission_card_desc_enabled">Service is connected and actively guarding your focus.</string>
-    <string name="permission_card_desc_disabled">Accessibility service is needed to detect and block short-form videos.</string>
+    <string name="permission_card_desc_disabled">Accessibility inspects supported apps’ screen structure and navigates away from short-form videos. Processing stays on this phone.</string>
     <string name="btn_enable_accessibility">Enable Accessibility</string>
     <string name="btn_service_settings">Accessibility Settings</string>
 
     <string name="info_title">How It Works</string>
     <string name="info_bullet_1">• Blocks YouTube Shorts, Instagram Reels &amp; Snapchat Spotlight</string>
     <string name="info_bullet_2">• Normal videos, regular posts, stories &amp; chats stay usable</string>
-    <string name="info_bullet_3">• 100% offline, zero data collection, ultra battery-efficient</string>
+    <string name="info_bullet_3">• Local detection; no internet permission or analytics in this app’s source</string>
 
     <!-- Overlay Strings -->
     <string name="overlay_blocked_title">Short-Form Content Blocked</string>

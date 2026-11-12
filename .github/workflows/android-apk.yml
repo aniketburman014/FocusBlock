@@ -1,0 +1,94 @@
+name: Build reviewed FocusBlock APK
+
+on:
+  push:
+    branches: [main, codex/focusblock-accessibility]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: focusblock-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out exact source commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Select hosted runner JDK 17
+        run: |
+          test -x "$JAVA_HOME_17_X64/bin/java"
+          echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
+          echo "$JAVA_HOME_17_X64/bin" >> "$GITHUB_PATH"
+
+      - name: Verify wrapper and APK inspection tests
+        run: |
+          echo 'cb0da6751c2b753a16ac168bb354870ebb1e162e9083f116729cec9c781156b8  gradle/wrapper/gradle-wrapper.jar' | sha256sum --check
+          python3 -m unittest discover -s scripts -p 'test_*.py' -v
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$sdkmanager"
+          "$sdkmanager" --licenses < <(yes) > /dev/null
+          "$sdkmanager" 'platforms;android-35' 'build-tools;34.0.0' 'platform-tools'
+
+      - name: Run JVM tests, lint, and compile app and device tests
+        run: ./gradlew --no-daemon --stacktrace testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
+
+      - name: Inspect APK permissions, verify signature, and record provenance
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/FocusBlock-debug.apk dist/
+          apk=dist/FocusBlock-debug.apk
+          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print "$apk" > dist/AndroidManifest.xml
+          python3 scripts/check_apk_manifest.py dist/AndroidManifest.xml
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$apk" > dist/signing-certificate.txt
+          sha256sum "$apk" > dist/SHA256SUMS
+          git rev-parse HEAD > dist/SOURCE-COMMIT.txt
+          cat > dist/BUILD-NOTES.txt <<'NOTES'
+          This is a debug-signed development APK for initial device testing.
+          JVM tests and Android lint passed; device tests were compiled, not executed.
+          No Internet permission or unexpected exported components passed the manifest check.
+          These checks are not a complete security audit or a guarantee of safety.
+          A fresh runner may generate a different debug certificate on each build.
+          If the signature changes, Android requires uninstalling the old app first.
+          NOTES
+          {
+            echo '### FocusBlock test APK'
+            echo 'Download the FocusBlock-test-apk artifact below and unzip it.'
+            echo 'Device tests still need to run on your S25. Keep Play Protect enabled.'
+            echo '```text'
+            cat dist/SHA256SUMS
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload checked test APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: FocusBlock-test-apk
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload test and lint reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: FocusBlock-test-reports
+          path: |
+            app/build/reports/
+            app/build/test-results/
+          if-no-files-found: ignore
+          retention-days: 7

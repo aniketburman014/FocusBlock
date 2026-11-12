@@ -11,3 +11,10 @@ local.properties
 app/build/
 build/
 *.hprof
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+__pycache__/
+*.pyc
+dist/
