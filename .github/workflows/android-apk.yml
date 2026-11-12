@@ -82,6 +82,11 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Show lint errors when a build fails
+        if: failure()
+        run: |
+          find app/build -type f \( -name 'lint-results-debug.txt' -o -name 'lint-results-debug.xml' \) -print -exec cat {} \;
+
       - name: Upload test and lint reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2, Node.js 24
@@ -90,5 +95,6 @@ jobs:
           path: |
             app/build/reports/
             app/build/test-results/
+            app/build/intermediates/lint_intermediate_text_report/debug/
           if-no-files-found: ignore
           retention-days: 7

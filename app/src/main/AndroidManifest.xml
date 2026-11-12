@@ -13,10 +13,12 @@
         android:theme="@style/Theme.FocusBlock">
 
         <!-- External profile/benchmark tooling is unnecessary for this companion app.
-             Keep AndroidX's in-process initialization, but remove its exported receiver. -->
+             Keep AndroidX's in-process initialization, but remove its exported receiver.
+             This is a merger removal marker, not a component that needs a class. -->
         <receiver
             android:name="androidx.profileinstaller.ProfileInstallReceiver"
-            tools:node="remove" />
+            tools:node="remove"
+            tools:ignore="MissingClass" />
 
         <activity
             android:name=".ui.MainActivity"

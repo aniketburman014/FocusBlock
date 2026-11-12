@@ -11,6 +11,7 @@ This checkout is separate from `/Users/aniket.burman/FocusBlock`. Accessibility 
 - Removed debug signing from release builds. Optional personal signing uses environment variables; otherwise release output is unsigned.
 - Ignored common private signing-file names.
 - Removed AndroidX's exported ProfileInstallReceiver during manifest merging. This external profiling/benchmark entry point is not needed for FocusBlock; AndroidX's in-process initializer remains. The APK checker still permits only the launcher activity and protected Accessibility service to be exported.
+- Suppressed MissingClass only on that receiver's removal marker, which lint otherwise treats as a live class declaration. No global lint baseline or lint disabling was added. Failed CI builds now print the lint report and include its text in the reports artifact.
 - Scoped Accessibility events to the six supported packages, removed click-event subscriptions, and required matching visible, active, focused application windows before detection or actions.
 - Removed cached activity names and event-label shortcuts from detection. Hidden and foreign nodes cannot identify blocked content. Navigation labels are inspected only for YouTube's shared navigation resource ID; Instagram detection uses IDs and selected state.
 - Replaced broad text/ancestor clicks with exact Instagram navigation IDs and visibility/enabled/window checks. Other platforms, or missing Instagram IDs, use guarded Back; Back may leave the app if its navigation stack has no previous page.
