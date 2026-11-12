@@ -34,6 +34,23 @@ class ApkManifestTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             check_manifest(root)
 
+    def test_exported_profileinstaller_receiver_is_rejected(self):
+        # Regression: AndroidX adds this through manifest merging. The app removes
+        # the external tooling entry point; do not silently allow it back in.
+        root = self.manifest()
+        receiver = ET.SubElement(root.find("application"), "receiver", {
+            ANDROID + "name": "androidx.profileinstaller.ProfileInstallReceiver",
+            ANDROID + "exported": "true",
+            ANDROID + "permission": "android.permission.DUMP",
+        })
+        actions = ET.SubElement(receiver, "intent-filter")
+        ET.SubElement(actions, "action", {
+            ANDROID + "name": "androidx.profileinstaller.action.INSTALL_PROFILE"})
+        with self.assertRaisesRegex(ValueError, "Unexpected exported components"):
+            check_manifest(root)
+        root.find("application").remove(receiver)
+        check_manifest(root)
+
     def test_unprotected_accessibility_service_is_rejected(self):
         root = self.manifest()
         del root.find("application/service").attrib[ANDROID + "permission"]

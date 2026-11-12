@@ -10,6 +10,7 @@ This checkout is separate from `/Users/aniket.burman/FocusBlock`. Accessibility 
 - Updated Android Gradle Plugin to 8.6.1, which supports compile SDK 35 with Gradle 8.7 and JDK 17. Removed the old unsupported-SDK warning suppression.
 - Removed debug signing from release builds. Optional personal signing uses environment variables; otherwise release output is unsigned.
 - Ignored common private signing-file names.
+- Removed AndroidX's exported ProfileInstallReceiver during manifest merging. This external profiling/benchmark entry point is not needed for FocusBlock; AndroidX's in-process initializer remains. The APK checker still permits only the launcher activity and protected Accessibility service to be exported.
 - Scoped Accessibility events to the six supported packages, removed click-event subscriptions, and required matching visible, active, focused application windows before detection or actions.
 - Removed cached activity names and event-label shortcuts from detection. Hidden and foreign nodes cannot identify blocked content. Navigation labels are inspected only for YouTube's shared navigation resource ID; Instagram detection uses IDs and selected state.
 - Replaced broad text/ancestor clicks with exact Instagram navigation IDs and visibility/enabled/window checks. Other platforms, or missing Instagram IDs, use guarded Back; Back may leave the app if its navigation stack has no previous page.
@@ -26,7 +27,7 @@ The local build attempt is blocked: no usable Java runtime or SDK was found, and
 
 The workflow `.github/workflows/android-apk.yml` runs on pushes to `main` or `codex/focusblock-accessibility`, pull requests, and manual dispatch. It uses the hosted Ubuntu 24.04 JDK 17 and installs Android SDK 35 and Build Tools 34.0.0. No repository signing secrets are needed for this development build.
 
-It verifies the wrapper, runs five Python tests for the final-manifest checker, runs JVM tests and Android lint, and compiles both the application and Android device tests. The six Android detector tests are compiled only; they still require execution on a device. It then checks the APK's merged manifest for unexpected permissions/exported components and verifies its signature.
+It verifies the wrapper, runs six Python tests for the final-manifest checker, runs JVM tests and Android lint, and compiles both the application and Android device tests. The six Android detector tests are compiled only; they still require execution on a device. It then checks the APK's merged manifest for unexpected permissions/exported components and verifies its signature.
 
 After a successful run, open your fork's **Actions → Build reviewed FocusBlock APK → successful run → Artifacts → FocusBlock-test-apk**. Unzip it to get the APK, APK SHA-256, source commit, manifest, and signing certificate details. Artifacts are retained for seven days. If Actions is disabled on your fork, enable it and push again or run the workflow from its branch once available.
 
