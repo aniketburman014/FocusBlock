@@ -6,7 +6,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // Kotlin 2.4 metadata requires a newer D8/R8 than AGP 8.13 bundles.
+        // Settings loads this early; declaring it here includes it in the audit.
         classpath("com.android.tools:r8:9.1.29")
     }
     configurations.named("classpath") {
@@ -38,4 +38,12 @@ buildscript {
 plugins {
     id("com.android.application") version "8.13.2" apply false
     id("org.jetbrains.kotlin.android") version "2.4.21" apply false
+}
+
+tasks.register("verifyD8Version") {
+    doLast {
+        val actual = com.android.tools.r8.Version.getVersionString()
+        check(actual.startsWith("9.1.29")) { "Unexpected D8/R8 implementation: $actual" }
+        logger.lifecycle("Active D8/R8 version: $actual")
+    }
 }

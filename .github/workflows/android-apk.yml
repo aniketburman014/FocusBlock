@@ -46,7 +46,7 @@ jobs:
 
       - name: Inventory and audit resolved dependencies
         run: |
-          ./gradlew --no-daemon --stacktrace :app:writeDependencyInventory
+          ./gradlew --no-daemon --stacktrace :verifyD8Version :app:writeDependencyInventory
           python3 scripts/audit_dependencies.py app/build/reports/dependencies/resolved.json app/build/reports/dependencies/osv-audit.json
 
       - name: Run JVM tests, lint, and compile app and device tests

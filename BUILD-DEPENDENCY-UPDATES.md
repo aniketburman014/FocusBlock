@@ -23,6 +23,8 @@ The transitive version rules are limited to the root buildscript's `classpath`. 
 
 Upgrading Kotlin also changes the compiler-selected Kotlin standard library version. AndroidX/Material runtime dependency declarations and application features were not changed. Instagram and YouTube support remain enabled. The new APK must be associated with its own source commit, dependency report, signature, and SHA-256; the earlier APK's hash does not apply.
 
+D8/R8 is loaded early from `pluginManagement.buildscript` in settings, following the publisher's override instructions, and declared on the root buildscript classpath so the dependency inventory also scans it. CI checks the actually loaded `Version.getVersionString()` before inventorying dependencies; an unexpected compiler implementation fails the run.
+
 ## Validation status
 
 The prepared versions were checked against publisher releases, advisories, and compatibility guidance. The Kotlin advisory lists versions below 2.4.20-Beta1 as affected; 2.4.21 is a stable release above that fixed version. The Gradle/AGP/Kotlin combination uses supported version ranges, with the documented D8/R8 override for Kotlin 2.4. JDK 17, Android platform 35, and Build Tools 35.0.0 are used.
