@@ -99,7 +99,9 @@ jobs:
       - name: Show lint errors when a build fails
         if: failure()
         run: |
-          find app/build -type f \( -name 'lint-results-debug.txt' -o -name 'lint-results-debug.xml' \) -print -exec cat {} \;
+          if [[ -d app/build ]]; then
+            find app/build -type f \( -name 'lint-results-debug.txt' -o -name 'lint-results-debug.xml' \) -print -exec cat {} \;
+          fi
 
       - name: Upload test and lint reports
         if: always()

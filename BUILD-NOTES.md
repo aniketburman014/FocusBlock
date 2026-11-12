@@ -34,6 +34,8 @@ The dependency stage resolves the runtime, unit-test, device-test, and build-plu
 
 The inventory describes dependencies resolved by the new CI run. It does not retrospectively authenticate every dependency in an earlier APK. Keep the report with the APK and source commit produced by the same run.
 
+The inventory uses Gradle's artifact component filter to include external Maven modules only. Test classpaths also reference the app's own generated classes JAR; project artifacts are excluded before file resolution so the audit can run before compilation. A missing external dependency still fails the task rather than being silently skipped.
+
 After a successful run, open your fork's **Actions → Build reviewed FocusBlock APK → successful run → Artifacts → FocusBlock-test-apk**. Unzip it to get the APK, APK SHA-256, source commit, manifest, and signing certificate details. Artifacts are retained for seven days. If Actions is disabled on your fork, enable it and push again or run the workflow from its branch once available.
 
 This is a **debug-signed development APK**, not a personally signed release. Fresh runners may produce different signing keys, requiring uninstalling an earlier build before installing a subsequent one. No signing keys are uploaded with the artifact. Use personal release signing for a lasting installation.

@@ -1,5 +1,6 @@
 import groovy.json.JsonOutput
 import java.security.MessageDigest
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 
 plugins {
     id("com.android.application")
@@ -101,8 +102,15 @@ tasks.register("writeDependencyInventory") {
             "build-tools" to rootProject.buildscript.configurations.getByName("classpath")
         )
         val entries = scopes.flatMap { (scope, configuration) ->
-            configuration.resolvedConfiguration.resolvedArtifacts.map { artifact ->
-                val module = artifact.moduleVersion.id
+            // Test classpaths also contain this project's generated classes.jar.
+            // Filter by component identity before resolving/hashing files, so an
+            // inventory can run on a clean checkout without compiling the app.
+            val externalArtifacts = configuration.incoming.artifactView {
+                componentFilter { identifier -> identifier is ModuleComponentIdentifier }
+            }.artifacts.artifacts
+            externalArtifacts.map { artifact ->
+                val module = artifact.id.componentIdentifier as ModuleComponentIdentifier
+                check(artifact.file.isFile) { "Missing external dependency artifact: ${artifact.id}" }
                 val digest = MessageDigest.getInstance("SHA-256")
                 artifact.file.inputStream().use { input ->
                     val buffer = ByteArray(65536)
@@ -113,7 +121,7 @@ tasks.register("writeDependencyInventory") {
                     }
                 }
                 mapOf(
-                    "scope" to scope, "name" to "${module.group}:${module.name}",
+                    "scope" to scope, "name" to "${module.group}:${module.module}",
                     "version" to module.version, "file" to artifact.file.name,
                     "sha256" to digest.digest().joinToString("") { "%02x".format(it) }
                 )
